@@ -2,7 +2,6 @@ import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from core.services.proxy_service import router as proxy_router
-from core.handlers.handler import router as main_router
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -26,7 +25,6 @@ app = FastAPI(
 
 # Register routers
 app.include_router(proxy_router)
-app.include_router(main_router, prefix="/v1", tags=["v1"])
 
 
 
