@@ -7,25 +7,28 @@ class Settings(BaseSettings):
     """Application configuration settings loaded from environment variables"""
 
     # MongoDB Configuration
-    mongo_uri: str = "mongodb://localhost:27017"
-    mongo_db: str = "testing"
-    mongo_collection: str = "translations"
-    mongo_timeout_ms: int = 5000
+    mongo_uri: str
+    mongo_db: str
+    mongo_collection: str
+    mongo_timeout_ms: int
 
     # Cache Configuration
-    cache_ttl_seconds: int = 300
+    cache_ttl_seconds: int
 
     # Proxy Configuration
     default_proxy_url: Optional[HttpUrl] = None
-    default_timeout: float = 20.0
-    max_timeout: float = 300.0
-    verify_ssl: bool = False
+    default_timeout: float
+    max_timeout: float
+    verify_ssl: bool
+
+    # Authentication Configuration
+    login_token: str
 
     # Application Configuration
-    app_host: str = "0.0.0.0"
-    app_port: int = 8001
-    app_reload: bool = True
-    log_level: str = "INFO"
+    app_host: str
+    app_port: int
+    app_reload: bool
+    log_level: str
 
     model_config = {
         "env_file": ".env",

@@ -25,15 +25,16 @@ async def proxy_request(req: ProxyRequest):
     Language extraction priority:
     1. Query parameters (params)
     2. Request payload
-
-    Supports all HTTP methods and automatically translates JSON responses.
     """
     method = req.method.upper()
+    # upstream_url = "https://datamosaix.dev.dt.bobcat.com/model_mgmt/dfm/process"
+    upstream_url = "https://datamosaix.dev.dt.bobcat.com/model_mgmt/header/process"
 
     # Extract language (params take priority over payload)
     language = proxy_handler.extract_language(params=req.params, payload=req.payload)
 
-    logger.info(f"Proxying {method} request to: {req.url}")
+    # Always proxy to the hardcoded upstream URL
+    logger.info(f"Proxying {method} request to hardcoded URL: {upstream_url}")
     if language:
         logger.info(f"Translation language detected: {language}")
 
@@ -41,7 +42,7 @@ async def proxy_request(req: ProxyRequest):
         async with asyncio.timeout(req.timeout):
             response = await proxy_handler.make_request(
                 method=method,
-                url=str(req.url),
+                url=upstream_url,
                 headers=req.headers,
                 cookies=req.cookies,
                 params=req.params,

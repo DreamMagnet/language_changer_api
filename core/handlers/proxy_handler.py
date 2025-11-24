@@ -1,6 +1,8 @@
 from typing import Any, Dict, Optional
 import httpx
+import json
 from fastapi import HTTPException
+from constants.app_configuration import settings
 from core.handlers.translation_handler import translation_service, JSONTranslator
 from utils.logger import setup_logger
 
@@ -22,10 +24,10 @@ class ProxyHandler:
         # First, try to extract from query parameters
         if params and isinstance(params, dict):
             lang = (
-                params.get("language") or
-                params.get("lang") or
-                params.get("locale") or
-                params.get("languageId")
+                    params.get("language") or
+                    params.get("lang") or
+                    params.get("locale") or
+                    params.get("languageId")
             )
             if isinstance(lang, str):
                 normalized = lang.lower().strip()
@@ -35,10 +37,10 @@ class ProxyHandler:
         # Fallback to extracting from payload
         if payload and isinstance(payload, dict):
             lang = (
-                payload.get("language") or
-                payload.get("lang") or
-                payload.get("locale") or
-                payload.get("languageId")
+                    payload.get("language") or
+                    payload.get("lang") or
+                    payload.get("locale") or
+                    payload.get("languageId")
             )
             if isinstance(lang, str):
                 normalized = lang.lower().strip()
@@ -47,6 +49,76 @@ class ProxyHandler:
 
         logger.debug("No language found in params or payload")
         return None
+
+    @staticmethod
+    def inject_auth_token(headers: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Inject authentication token from environment into headers.
+        If headers don't exist, create them. If Authorization header doesn't exist, add it.
+        """
+        if headers is None:
+            headers = {}
+
+        if settings.login_token:
+            if "Authorization" not in headers:
+                headers["login-token"] = f"{settings.login_token}"
+                logger.debug("Injected auth token from environment")
+            else:
+                logger.debug("Authorization header already present, skipping injection")
+        else:
+            logger.warning("No login_token configured in environment")
+
+        return headers
+
+    @staticmethod
+    def build_url_with_params(
+            url: str,
+            params: Optional[Dict[str, Any]],
+            payload: Optional[Any]
+    ) -> str:
+        """
+        Build URL with schema and params as query parameters.
+
+        Rules:
+        1. If schema exists in params dict, add it as: ?schema=value
+        2. If params dict exists, add it as: &params={"json":"encoded"}
+        3. If schema exists in payload (but not in params), extract and add to URL
+
+        Returns:
+            str: modified_url with query parameters
+        """
+        schema_value = None
+        query_parts = []
+
+        # Check for schema in params first (priority)
+        if params and isinstance(params, dict) and "schema" in params:
+            schema_value = params.get("schema")
+            logger.debug(f"Found schema in params: {schema_value}")
+
+        # Fallback to payload if schema not in params
+        elif payload and isinstance(payload, dict) and "schema" in payload:
+            schema_value = payload.get("schema")
+            logger.debug(f"Found schema in payload: {schema_value}")
+
+        # Add schema to query parts if found
+        if schema_value:
+            query_parts.append(f"schema={schema_value}")
+            logger.debug(f"Added schema to query: schema={schema_value}")
+
+        # Add params dict as JSON string to query
+        if params and isinstance(params, dict):
+            params_json = json.dumps(params, separators=(',', ':'))
+            query_parts.append(f"params={params_json}")
+            logger.debug(f"Added params to query: params={params_json}")
+
+        # Build final URL
+        if query_parts:
+            separator = "&" if "?" in url else "?"
+            query_string = "&".join(query_parts)
+            url = f"{url}{separator}{query_string}"
+            logger.info(f"Built final URL: {url}")
+
+        return url
 
     @staticmethod
     async def make_request(
@@ -63,14 +135,16 @@ class ProxyHandler:
         Note: this function no longer accepts a timeout parameter. Callers should
         apply an asyncio timeout context manager around this call when necessary.
         """
+        # Inject authentication token from environment
+        headers = ProxyHandler.inject_auth_token(headers)
+
+        # Build URL with schema and params handling
+        url = ProxyHandler.build_url_with_params(url, params, payload)
+
         httpx_kwargs: Dict[str, Any] = {
             "method": method,
             "url": url,
         }
-
-        # Add query parameters
-        if params:
-            httpx_kwargs["params"] = params
 
         # Add headers
         if headers:

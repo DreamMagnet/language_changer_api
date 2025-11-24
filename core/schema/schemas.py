@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator, HttpUrl
 class ProxyRequest(BaseModel):
     """Schema for proxy request payload"""
 
-    url: HttpUrl = Field(..., description="Target URL to proxy to")
+    # url: HttpUrl = Field(..., description="Target URL to proxy to")
     method: str = Field(default="GET", description="HTTP method")
     headers: Optional[Dict[str, str]] = Field(
         default=None,
@@ -43,7 +43,7 @@ class ProxyRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "url": "https://api.example.com/data",
+                # "url": "https://api.example.com/data",
                 "method": "POST",
                 "headers": {"Authorization": "Bearer token"},
                 "payload": {"language": "es", "query": "test"}
