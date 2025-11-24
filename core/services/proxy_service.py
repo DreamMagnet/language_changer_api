@@ -27,7 +27,6 @@ async def proxy_request(req: ProxyRequest):
     2. Request payload
     """
     method = req.method.upper()
-    # upstream_url = "https://datamosaix.dev.dt.bobcat.com/model_mgmt/dfm/process"
     upstream_url = "https://datamosaix.dev.dt.bobcat.com/model_mgmt/header/process"
 
     # Extract language (params take priority over payload)
